@@ -141,18 +141,20 @@ def get_catalog_index(gridname):
     elif gridname == 'phoenix':
         catdir = 'crgridphoenix$'
     else:
-        raise synexceptions.SynphotError(
-            f'{gridname} is not a supported catalog grid.')
+        catdir = 'crgrid$' + gridname
 
     catdir = stio.irafconvert(catdir)
     filename = stio.resolve_filename(catdir, 'catalog.fits')
 
     # If not cached, read from grid catalog and cache it
     if filename not in _CACHE:
-        data = stio.read_catalog(filename)  # EXT 1
-        _CACHE[filename] = [list(map(float, index.split(','))) +
-                            [data['FILENAME'][i]]
-                            for i, index in enumerate(data['INDEX'])]
+        try:
+            data = stio.read_catalog(filename)  # EXT 1
+            _CACHE[filename] = [list(map(float, index.split(','))) +
+                                [data['FILENAME'][i]]
+                                for i, index in enumerate(data['INDEX'])]
+        except FileNotFoundError as e:
+            raise synexceptions.SynphotError(f'{gridname} catalog was not found: {e}')
 
     return _CACHE[filename], catdir
 

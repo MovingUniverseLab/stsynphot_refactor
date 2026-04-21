@@ -104,3 +104,43 @@ def test_grid_to_spec_exceptions_2():
     with pytest.raises(synexceptions.SynphotError):
         catalog.grid_to_spec(
             'k93models', 6440, 0, 4.3 * u.dimensionless_unscaled)
+
+@pytest.mark.remote_data
+def test_get_catalog_index_custom():
+    from stsynphot import stio
+    import os
+    import shutil
+    from astropy.io import fits
+    from astropy.table import Table
+
+    # Make mock directory for custom catalog.
+    crds_dir = stio.irafconvert('crgrid$')
+    custom_name = 'BTSettl_2015_test'
+    custom_dir = os.path.join(crds_dir, custom_name)
+    os.makedirs(custom_dir, exist_ok=True)
+
+    cat_table = Table(rows=[('10000,-0.5,0.0', 'BTSettl_2015_test_00000.fits'),
+                            ('10000,-0.5,0.5', 'BTSettl_2015_test_00001.fits'),
+                            ('10000,-0.5,1.0', 'BTSettl_2015_test_00002.fits')],
+                      names=['INDEX', 'FILENAME'], dtype=['S14', 'S46'])
+    cat_table.write(os.path.join(custom_dir, 'catalog.fits'), format='fits', overwrite=True)
+
+    # Test whether we can get a valid catalog path for a custom catalog
+    catfiles, catdir = catalog.get_catalog_index(f'{custom_name}')
+
+    assert catdir.endswith(f'{custom_name}')
+    assert len(catfiles) == 3
+
+    # Clean up
+    shutil.rmtree(custom_dir)
+
+    return
+
+@pytest.mark.remote_data
+def test_get_catalog_index_invalid_custom():
+    # Test whether we get an exception with an invalid catalog name.
+
+    with pytest.raises(synexceptions.SynphotError):
+        catfiles, catdir = catalog.get_catalog_index('junk')
+
+    return
