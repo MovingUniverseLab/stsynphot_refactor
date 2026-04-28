@@ -3,6 +3,7 @@
 
 # STDLIB
 import numbers
+from urllib.error import HTTPError
 
 # THIRD-PARTY
 import numpy as np
@@ -154,7 +155,13 @@ def get_catalog_index(gridname):
                                 [data['FILENAME'][i]]
                                 for i, index in enumerate(data['INDEX'])]
         except FileNotFoundError as e:
-            raise synexceptions.SynphotError(f'{gridname} catalog was not found: {e}')
+            raise synexceptions.SynphotError(
+                f'{gridname} catalog was not found: {e}') from e
+        except HTTPError as e:
+            if e.code != 404:
+                raise
+            raise synexceptions.SynphotError(
+                f'{gridname} remote catalog was not found: {e}') from e
 
     return _CACHE[filename], catdir
 
