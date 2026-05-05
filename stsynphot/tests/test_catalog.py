@@ -124,12 +124,12 @@ class TestCustomCatalog:
                 ('10000,-0.5,1.0', 'BTSettl_2015_test_00002.fits')]
 
         cat_tab = Table(rows=data,
-                    names=['INDEX', 'FILENAME'], 
-                    dtype=['S14', 'S46'])
-        cat_tab.write(os.path.join(custom_dir, 'catalog.fits'), 
-                  format='fits', 
-                  overwrite=True)
-                  
+                        names=['INDEX', 'FILENAME'],
+                        dtype=['S14', 'S46'])
+        cat_tab.write(os.path.join(custom_dir, 'catalog.fits'),
+                      format='fits',
+                      overwrite=True)
+
         self.custom_name = custom_name
         self.custom_dir = custom_dir
 
@@ -149,6 +149,6 @@ class TestCustomCatalog:
 def test_get_catalog_index_invalid_custom():
     # Test whether we get an exception with an invalid catalog name.
 
-    with pytest.raises(synexceptions.SynphotError, match=r'junk catalog was not found'):
+    with pytest.raises(synexceptions.SynphotError,
+                       match=r'junk catalog was not found'):
         catfiles, catdir = catalog.get_catalog_index('junk')
-
