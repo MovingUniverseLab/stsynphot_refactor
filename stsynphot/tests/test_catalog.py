@@ -4,8 +4,6 @@
 # THIRD-PARTY
 import numpy as np
 import pytest
-import os
-import shutil
 
 # ASTROPY
 from astropy import units as u
@@ -16,7 +14,7 @@ from synphot import exceptions as synexceptions
 from synphot import units
 
 # LOCAL
-from stsynphot import stio, catalog, exceptions
+from stsynphot import conf as stsyn_conf, catalog, exceptions
 
 
 @pytest.mark.remote_data
@@ -109,46 +107,32 @@ def test_grid_to_spec_exceptions_2():
             'k93models', 6440, 0, 4.3 * u.dimensionless_unscaled)
 
 
-@pytest.mark.remote_data
-class TestCustomCatalog:
+def test_get_catalog_index_custom(tmp_path):
     """Test custom catalogs."""
-    def setup_class(self):
-        # Make mock directory for custom catalog.
-        crds_dir = stio.irafconvert('crgrid$')
-        custom_name = 'BTSettl_2015_test'
-        custom_dir = os.path.join(crds_dir, custom_name)
-        os.makedirs(custom_dir, exist_ok=True)
 
-        data = [('10000,-0.5,0.0', 'BTSettl_2015_test_00000.fits'),
-                ('10000,-0.5,0.5', 'BTSettl_2015_test_00001.fits'),
-                ('10000,-0.5,1.0', 'BTSettl_2015_test_00002.fits')]
+    crgrid = tmp_path / "grid"  # As defined in irafshortcuts.txt
+    crgrid.mkdir()
 
-        cat_tab = Table(rows=data,
-                    names=['INDEX', 'FILENAME'], 
+    # Mock a custom catalog.
+    custom_name = 'BTSettl_2015_test'
+    custom_dir = crgrid / custom_name
+    custom_dir.mkdir()
+    data = [('10000,-0.5,0.0', 'BTSettl_2015_test_00000.fits'),
+            ('10000,-0.5,0.5', 'BTSettl_2015_test_00001.fits'),
+            ('10000,-0.5,1.0', 'BTSettl_2015_test_00002.fits')]
+    cat_tab = Table(rows=data,
+                    names=['INDEX', 'FILENAME'],
                     dtype=['S14', 'S46'])
-        cat_tab.write(os.path.join(custom_dir, 'catalog.fits'), 
-                  format='fits', 
-                  overwrite=True)
-                  
-        self.custom_name = custom_name
-        self.custom_dir = custom_dir
+    cat_tab.write(custom_dir / 'catalog.fits',
+                  format='fits', overwrite=True)
 
-    def test_get_catalog_index_custom(self):
+    with stsyn_conf.set_temp("rootdir", str(tmp_path)):
         # Test whether we can get a valid catalog path for a custom catalog
-        catfiles, catdir = catalog.get_catalog_index(f'{self.custom_name}')
-
-        assert catdir.endswith(f'{self.custom_name}')
+        catfiles, catdir = catalog.get_catalog_index(custom_name)
+        assert catdir.endswith(custom_name)
         assert len(catfiles) == 3
 
-    def teardown_class(self):
-        # Clean up
-        shutil.rmtree(self.custom_dir)
-
-
-@pytest.mark.remote_data
-def test_get_catalog_index_invalid_custom():
-    # Test whether we get an exception with an invalid catalog name.
-
-    with pytest.raises(synexceptions.SynphotError, match=r'junk catalog was not found'):
-        catfiles, catdir = catalog.get_catalog_index('junk')
-
+        # Test whether we get an exception with an invalid catalog name.
+        with pytest.raises(synexceptions.SynphotError,
+                           match='junk catalog was not found'):
+            catfiles, catdir = catalog.get_catalog_index('junk')
