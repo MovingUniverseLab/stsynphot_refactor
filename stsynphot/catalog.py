@@ -124,7 +124,9 @@ def get_catalog_index(gridname):
     Parameters
     ----------
     gridname : str
-        See :func:`grid_to_spec`.
+        See :func:`grid_to_spec` for supported grids.
+        Any other input is assumed to be custom grid stored
+        in ``crgrid$`` as expected by :func:`~stsynphot.stio.irafconvert`.
 
     Returns
     -------
@@ -142,7 +144,7 @@ def get_catalog_index(gridname):
     elif gridname == 'phoenix':
         catdir = 'crgridphoenix$'
     else:
-        catdir = 'crgrid$' + gridname
+        catdir = 'crgrid${}'.format(gridname)
 
     catdir = stio.irafconvert(catdir)
     filename = stio.resolve_filename(catdir, 'catalog.fits')
@@ -154,14 +156,9 @@ def get_catalog_index(gridname):
             _CACHE[filename] = [list(map(float, index.split(','))) +
                                 [data['FILENAME'][i]]
                                 for i, index in enumerate(data['INDEX'])]
-        except FileNotFoundError as e:
+        except (FileNotFoundError, HTTPError) as e:
             raise synexceptions.SynphotError(
                 f'{gridname} catalog was not found: {e}') from e
-        except HTTPError as e:
-            if e.code != 404:
-                raise
-            raise synexceptions.SynphotError(
-                f'{gridname} remote catalog was not found: {e}') from e
 
     return _CACHE[filename], catdir
 
